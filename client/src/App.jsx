@@ -162,7 +162,7 @@ export default function App() {
           ? 'You win!'
           : 'You lose!'
         : myTurn
-          ? 'Your turn — drop a disc'
+          ? 'Your turn'
           : `${names[myIndex === 0 ? 1 : 0]}'s turn`;
 
   const wonCells = useMemo(() => {
@@ -203,10 +203,7 @@ export default function App() {
             />
           </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={handleCreate}
-          >
+          <button className="btn btn-primary" onClick={handleCreate}>
             Create a game
           </button>
 
@@ -272,9 +269,7 @@ export default function App() {
           <div className="card">
             <p className="card-title">Room created</p>
             <div className="room-code">{roomCode}</div>
-            <p className="card-title">
-              Share this link with your opponent
-            </p>
+            <p className="card-title">Share this link with your opponent</p>
             <div className="link-row">
               <span className="link-text">{shareLink}</span>
               <button className="btn btn-secondary" onClick={copyLink}>
@@ -336,9 +331,7 @@ export default function App() {
                     <div
                       key={c}
                       className={`hover-cell ${
-                        hoveredCol === c &&
-                        myTurn &&
-                        board[0][c] === null
+                        hoveredCol === c && myTurn && board[0][c] === null
                           ? 'show'
                           : ''
                       }`}
@@ -354,9 +347,7 @@ export default function App() {
                       <div
                         key={`${r}-${c}`}
                         className={`cell ${
-                          hoveredCol === c && myTurn && !val
-                            ? 'col-hover'
-                            : ''
+                          hoveredCol === c && myTurn && !val ? 'col-hover' : ''
                         } ${val ? 'filled' : ''}`}
                         onMouseEnter={() => setHoveredCol(c)}
                         onClick={() => drop(c)}
@@ -409,8 +400,8 @@ export default function App() {
                       {winnerKey === 'draw'
                         ? '='
                         : winnerKey === myKey
-                          ? '✓'
-                          : '✗'}
+                          ? '\u2713'
+                          : '\u2717'}
                     </div>
                     <h2>
                       {winnerKey === 'draw'
