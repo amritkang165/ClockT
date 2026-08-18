@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { socket } from './socket';
+import { GAMES, gameTitle } from './games/registry';
+import Connect4 from './games/Connect4';
+import TicTacToe from './games/TicTacToe';
+import Rps from './games/Rps';
 import './styles.css';
-
-const ROWS = 6;
-const COLS = 7;
-function emptyBoard() {
-  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
-}
 
 const PREVIEW_PIECES = [
   [3, 0, 'red'],
@@ -24,27 +22,60 @@ const PREVIEW_PIECES = [
   [3, 6, 'yellow'],
 ];
 
+function GameIcon({ icon }) {
+  if (icon === 'c4') {
+    return (
+      <div className="gicon c4" aria-hidden="true">
+        <span className="gdot red" />
+        <span className="gdot yellow" />
+        <span className="gdot yellow" />
+        <span className="gdot red" />
+      </div>
+    );
+  }
+  if (icon === 'ttt') {
+    return (
+      <div className="gicon ttt" aria-hidden="true">
+        <span>X</span>
+        <span />
+        <span>O</span>
+        <span />
+        <span className="mid">X</span>
+        <span />
+        <span>O</span>
+        <span />
+        <span>X</span>
+      </div>
+    );
+  }
+  return (
+    <div className="gicon rps" aria-hidden="true">
+      <span className="gdot red" />
+      <span className="gdot yellow" />
+      <span className="gdot red" />
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState('landing');
   const [roomCode, setRoomCode] = useState('');
-  const [myIndex, setMyIndex] = useState(0);
-  const [turn, setTurn] = useState(0);
-  const [board, setBoard] = useState(emptyBoard());
-  const [winnerKey, setWinnerKey] = useState(null);
-  const [winCells, setWinCells] = useState([]);
-  const [lastMove, setLastMove] = useState(null);
-  const [opponentConnected, setOpponentConnected] = useState(false);
+  const [game, setGame] = useState('connect4');
+  const [state, setState] = useState(null);
+  const [myName, setMyName] = useState('');
+  const [names, setNames] = useState(['Player 1', 'Player 2']);
   const [errorMsg, setErrorMsg] = useState('');
   const [toast, setToast] = useState('');
   const [copied, setCopied] = useState(false);
-  const [hoveredCol, setHoveredCol] = useState(-1);
-  const [myName, setMyName] = useState('');
-  const [names, setNames] = useState(['Player 1', 'Player 2']);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('room');
     const name = params.get('name');
+    const gameParam = params.get('game');
+    if (gameParam && GAMES.some(g => g.id === gameParam)) {
+      setGame(gameParam);
+    }
     if (code) {
       setRoomCode(code.toUpperCase());
       if (name) setMyName(name);
@@ -53,30 +84,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const onRoomCreated = ({ code }) => {
+    const onRoomCreated = ({ code, game: g }) => {
       setRoomCode(code);
-      setMyIndex(0);
-      setTurn(0);
-      setBoard(emptyBoard());
-      setWinnerKey(null);
-      setWinCells([]);
-      setLastMove(null);
-      setOpponentConnected(false);
+      setGame(g || 'connect4');
+      setState(null);
       setNames([myName || 'Player 1', 'Player 2']);
+      setToast('');
       setScreen('waiting');
     };
 
-    const onGameState = (state) => {
-      setRoomCode(state.code);
-      setMyIndex(state.yourIndex);
-      setTurn(state.turn);
-      setBoard(state.board);
-      setWinnerKey(state.winner);
-      setWinCells(state.winCells || []);
-      setLastMove(state.lastMove);
-      setOpponentConnected(state.opponentConnected);
-      if (state.names) setNames(state.names);
-      setScreen(state.winner ? 'over' : 'playing');
+    const onGameState = (snap) => {
+      setRoomCode(snap.code);
+      setGame(snap.game);
+      setNames(snap.names || names);
+      setState(snap);
+      setToast('');
+      setScreen(snap.winner ? 'over' : 'playing');
     };
 
     const onError = ({ message, fatal }) => {
@@ -90,10 +113,11 @@ export default function App() {
     };
 
     const onOpponentLeft = ({ name }) => {
-      setOpponentConnected(false);
-      const leftName = name || 'Opponent';
-      setToast(`${leftName} left the game`);
+      setToast(`${name || 'Opponent'} left the game`);
       window.setTimeout(() => setToast(''), 4000);
+      if (state && state.game === 'rps') {
+        return;
+      }
     };
 
     socket.on('roomCreated', onRoomCreated);
@@ -106,7 +130,9 @@ export default function App() {
       socket.off('error', onError);
       socket.off('opponentLeft', onOpponentLeft);
     };
-  }, [myName]);
+  }, [myName, names]);
+
+  const winnerKey = state ? state.winner : null;
 
   useEffect(() => {
     if (winnerKey === 'red' || winnerKey === 'yellow') {
@@ -118,10 +144,14 @@ export default function App() {
     }
   }, [winnerKey]);
 
+  const myIndex = state ? state.yourIndex : 0;
   const myKey = myIndex === 0 ? 'red' : 'yellow';
-  const myTurn = turn === myIndex && !winnerKey;
+  const myTurn = state ? state.turn === myIndex && !winnerKey : false;
+  const opponentConnected = state ? state.opponentConnected : false;
+  const displayName = (idx) => names[idx] || `Player ${idx + 1}`;
+
   const shareLink = roomCode
-    ? `${window.location.origin}${window.location.pathname}?room=${roomCode}&name=${encodeURIComponent(names[1] || 'Player 2')}`
+    ? `${window.location.origin}${window.location.pathname}?room=${roomCode}&game=${game}&name=${encodeURIComponent(names[1] || 'Player 2')}`
     : '';
   const gameActive = screen === 'playing' || screen === 'over';
 
@@ -133,43 +163,38 @@ export default function App() {
     } catch {}
   };
 
-  const drop = (col) => {
-    if (myTurn && board[0][col] === null) {
-      socket.emit('makeMove', col);
-    }
-  };
-
   const goHome = () => {
     window.history.replaceState(null, '', window.location.pathname);
     setScreen('landing');
+    setState(null);
+    setRoomCode('');
     setMyName('');
   };
 
   const handleCreate = () => {
-    socket.emit('createRoom', myName.trim() || undefined);
+    socket.emit('createRoom', myName.trim() || undefined, game);
   };
 
   const handleJoin = () => {
-    socket.emit('joinRoom', roomCode, myName.trim() || undefined);
+    socket.emit('joinRoom', roomCode, myName.trim() || undefined, game);
   };
 
-  const statusText = !opponentConnected
-    ? 'Waiting for opponent...'
-    : winnerKey === 'draw'
-      ? "It's a draw!"
-      : winnerKey
-        ? winnerKey === myKey
-          ? 'You win!'
-          : 'You lose!'
-        : myTurn
-          ? 'Your turn'
-          : `${names[myIndex === 0 ? 1 : 0]}'s turn`;
-
-  const wonCells = useMemo(() => {
-    return new Set(winCells.map(([r, c]) => `${r}-${c}`));
-  }, [winCells]);
-
-  const displayName = (idx) => names[idx] || `Player ${idx + 1}`;
+  let status = '';
+  if (gameActive && state) {
+    if (!opponentConnected) {
+      status = 'Waiting for opponent...';
+    } else if (winnerKey === 'draw') {
+      status = "It's a draw!";
+    } else if (winnerKey) {
+      status = winnerKey === myKey ? 'You win!' : 'You lose!';
+    } else if (myTurn) {
+      status = game === 'rps' ? 'Pick your move' : 'Your turn';
+    } else {
+      status = game === 'rps'
+        ? 'Waiting for opponent...'
+        : `${displayName(myIndex === 0 ? 1 : 0)}'s turn`;
+    }
+  }
 
   return (
     <main className="app">
@@ -183,15 +208,29 @@ export default function App() {
           </div>
 
           <h1 className="title">
-            Connect<span className="title-accent">4</span>
+            Game<span className="title-accent">Hub</span>
           </h1>
 
           <p className="subtitle">
-            The classic strategy game, reimagined for the modern web. Create a
-            room, share the link, and play with a friend.
+            Pick a game, create a room, share the link, and play with a friend
+            in real time.
           </p>
 
-          <div className="name-input-row">
+          <div className="game-picker">
+            {GAMES.map(g => (
+              <button
+                key={g.id}
+                className={`game-card ${game === g.id ? 'selected' : ''}`}
+                onClick={() => setGame(g.id)}
+              >
+                <GameIcon icon={g.icon} />
+                <span className="game-card-title">{g.title}</span>
+                <span className="game-card-tagline">{g.tagline}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="name-input-row landing-name">
             <input
               type="text"
               className="name-input"
@@ -204,7 +243,7 @@ export default function App() {
           </div>
 
           <button className="btn btn-primary" onClick={handleCreate}>
-            Create a game
+            Create a {gameTitle(game)} game
           </button>
 
           <div className="board-preview" aria-hidden="true">
@@ -232,7 +271,7 @@ export default function App() {
       {screen === 'joining' && (
         <section className="screen" key="joining">
           <div className="card">
-            <p className="card-title">Join game</p>
+            <p className="card-title">Join {gameTitle(game)} game</p>
             <div className="name-input-row">
               <input
                 type="text"
@@ -267,7 +306,7 @@ export default function App() {
       {screen === 'waiting' && (
         <section className="screen" key="waiting">
           <div className="card">
-            <p className="card-title">Room created</p>
+            <p className="card-title">{gameTitle(game)} · Room created</p>
             <div className="room-code">{roomCode}</div>
             <p className="card-title">Share this link with your opponent</p>
             <div className="link-row">
@@ -284,12 +323,12 @@ export default function App() {
         </section>
       )}
 
-      {gameActive && (
+      {gameActive && state && (
         <section className="screen" key="game">
           <div className="game">
             <header className="header">
               <div className="header-left">
-                <span className="room-tag">Room {roomCode}</span>
+                <span className="room-tag">{gameTitle(game)} · {roomCode}</span>
                 <button className="btn-icon" onClick={goHome} title="Leave room">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -299,93 +338,52 @@ export default function App() {
                 </button>
               </div>
               <div className="players">
-                <div
-                  className={`player ${
-                    turn === 0 && !winnerKey ? 'active' : ''
-                  }`}
-                >
+                <div className={`player ${state.turn === 0 && !winnerKey ? 'active' : ''}`}>
                   <span className="chip red" />
                   <span>{myIndex === 0 ? `${myName || 'You'} (You)` : displayName(0)}</span>
                 </div>
                 <span className="vs">vs</span>
-                <div
-                  className={`player ${
-                    turn === 1 && !winnerKey ? 'active' : ''
-                  }`}
-                >
+                <div className={`player ${state.turn === 1 && !winnerKey ? 'active' : ''}`}>
                   <span className="chip yellow" />
                   <span>{myIndex === 1 ? `${myName || 'You'} (You)` : displayName(1)}</span>
                 </div>
               </div>
             </header>
 
-            <div className="board-wrap">
-              <div
-                className={`board-frame ${
-                  myTurn && !winnerKey ? 'your-turn' : ''
-                }`}
-                onMouseLeave={() => setHoveredCol(-1)}
-              >
-                <div className="hover-row">
-                  {Array.from({ length: COLS }, (_, c) => (
-                    <div
-                      key={c}
-                      className={`hover-cell ${
-                        hoveredCol === c && myTurn && board[0][c] === null
-                          ? 'show'
-                          : ''
-                      }`}
-                    >
-                      <div className={`piece-preview ${myKey}`} />
-                    </div>
-                  ))}
-                </div>
+            <div className="game-area">
+              {game === 'connect4' && (
+                <Connect4
+                  state={state}
+                  myIndex={myIndex}
+                  myKey={myKey}
+                  myTurn={myTurn}
+                  winnerKey={winnerKey}
+                />
+              )}
+              {game === 'tictactoe' && (
+                <TicTacToe
+                  state={state}
+                  myTurn={myTurn}
+                  winnerKey={winnerKey}
+                />
+              )}
+              {game === 'rps' && (
+                <Rps
+                  state={state}
+                  myIndex={myIndex}
+                  myKey={myKey}
+                  myName={myName}
+                  names={names}
+                  winnerKey={winnerKey}
+                />
+              )}
 
-                <div className={`board ${myTurn ? '' : 'locked'}`}>
-                  {board.map((rowArr, r) =>
-                    rowArr.map((val, c) => (
-                      <div
-                        key={`${r}-${c}`}
-                        className={`cell ${
-                          hoveredCol === c && myTurn && !val ? 'col-hover' : ''
-                        } ${val ? 'filled' : ''}`}
-                        onMouseEnter={() => setHoveredCol(c)}
-                        onClick={() => drop(c)}
-                      >
-                        {val && (
-                          <div
-                            className={`piece ${val} ${
-                              lastMove &&
-                              lastMove.row === r &&
-                              lastMove.col === c &&
-                              !wonCells.has(`${r}-${c}`)
-                                ? 'drop-in'
-                                : ''
-                            } ${
-                              wonCells.has(`${r}-${c}`) ? 'won' : ''
-                            }`}
-                            style={
-                              lastMove &&
-                              lastMove.row === r &&
-                              lastMove.col === c
-                                ? { '--row': r }
-                                : undefined
-                            }
-                          />
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <p className="status">{statusText}</p>
+              <p className="status">{status}</p>
               {!opponentConnected && (
                 <p className="notice">Opponent disconnected</p>
               )}
-              {toast && <div className="toast">{toast}</div>}
 
-              {winnerKey && (
+              {winnerKey && game !== 'rps' && (
                 <div className="overlay">
                   <div className="result">
                     <div
@@ -413,7 +411,7 @@ export default function App() {
                     <p>
                       {winnerKey === 'draw'
                         ? 'No more moves available.'
-                        : 'Nice 4-in-a-row!'}
+                        : 'Nice play!'}
                     </p>
                     <button
                       className="btn btn-primary"
@@ -425,6 +423,8 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {toast && <div className="toast">{toast}</div>}
           </div>
         </section>
       )}

@@ -1,11 +1,16 @@
-const ROWS = 6;
-const COLS = 7;
+const crypto = require('crypto');
+const connect4 = require('./games/connect4');
+const tictactoe = require('./games/tictactoe');
+const rps = require('./games/rps');
+
+const games = { connect4, tictactoe, rps };
+
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function generateCode(rooms) {
   let code;
   do {
-    code = Array.from(cryptoBytes(6))
+    code = Array.from(crypto.randomBytes(6))
       .map(b => CODE_ALPHABET[b % CODE_ALPHABET.length])
       .join('')
       .slice(0, 4);
@@ -13,26 +18,16 @@ function generateCode(rooms) {
   return code;
 }
 
-const crypto = require('crypto');
-function cryptoBytes(n) {
-  return Array.from(crypto.randomBytes(n));
-}
-
-function emptyBoard() {
-  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
-}
-
-function createRoom(code, playerId, name) {
+function createRoom(code, playerId, name, gameId) {
+  const game = games[gameId] || games.connect4;
   return {
     code,
-    board: emptyBoard(),
+    game: game.id,
     players: [playerId, null],
     names: [name || 'Player 1', null],
     turn: 0,
     winner: null,
-    winCells: [],
-    lastMove: null,
-    moveCount: 0,
+    state: game.create(),
   };
 }
 
@@ -40,76 +35,25 @@ function playerIndex(room, socketId) {
   return room.players[0] === socketId ? 0 : 1;
 }
 
-function findDropRow(board, col) {
-  for (let r = ROWS - 1; r >= 0; r--) {
-    if (board[r][col] === null) return r;
-  }
-  return -1;
-}
-
-function findWinningCells(board, row, col, key) {
-  const dirs = [
-    [0, 1],
-    [1, 0],
-    [1, 1],
-    [1, -1],
-  ];
-  for (const [dr, dc] of dirs) {
-    const cells = [[row, col]];
-    for (const s of [1, -1]) {
-      let r = row + dr * s;
-      let c = col + dc * s;
-      while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === key) {
-        cells.push([r, c]);
-        r += dr * s;
-        c += dc * s;
-      }
-    }
-    if (cells.length >= 4) return cells.slice(-4);
-  }
-  return null;
-}
-
-function applyMove(room, socketId, col) {
-  if (!Number.isInteger(col) || col < 0 || col >= COLS) {
-    return { ok: false, message: 'Invalid column.' };
-  }
+function applyMove(room, socketId, action) {
   if (room.winner) {
     return { ok: false, message: 'This game is already over.' };
   }
   const index = playerIndex(room, socketId);
-  if (index !== room.turn) {
-    return { ok: false, message: "It's not your turn." };
-  }
-  const row = findDropRow(room.board, col);
-  if (row === -1) {
-    return { ok: false, message: 'That column is full.' };
-  }
+  return games[room.game].applyMove(room, index, action);
+}
 
-  const key = index === 0 ? 'red' : 'yellow';
-  room.board[row][col] = key;
-  room.lastMove = { row, col };
-  room.moveCount += 1;
-  room.turn = 1 - room.turn;
-
-  const winCells = findWinningCells(room.board, row, col, key);
-  if (winCells) {
-    room.winner = key;
-    room.winCells = winCells;
-  } else if (room.moveCount === ROWS * COLS) {
-    room.winner = 'draw';
-  }
-  return { ok: true };
+function resetGame(room) {
+  room.state = games[room.game].create();
+  room.turn = 0;
+  room.winner = null;
 }
 
 module.exports = {
-  ROWS,
-  COLS,
+  games,
   generateCode,
-  emptyBoard,
   createRoom,
   playerIndex,
-  findDropRow,
-  findWinningCells,
   applyMove,
+  resetGame,
 };

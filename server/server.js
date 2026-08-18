@@ -5,11 +5,12 @@ const cors = require('cors');
 const express = require('express');
 const { Server } = require('socket.io');
 const {
+  games,
   generateCode,
-  emptyBoard,
   createRoom,
   playerIndex,
   applyMove,
+  resetGame,
 } = require('./game');
 
 const PORT = process.env.PORT || 3001;
@@ -34,17 +35,17 @@ if (fs.existsSync(path.join(dist, 'index.html'))) {
 const rooms = new Map(); // roomCode -> room
 
 function snapshot(room, socketId) {
+  const index = playerIndex(room, socketId);
+  const game = games[room.game];
   return {
     code: room.code,
-    board: room.board,
+    game: room.game,
     turn: room.turn,
     winner: room.winner,
-    winCells: room.winCells,
-    lastMove: room.lastMove,
-    yourIndex: playerIndex(room, socketId),
-    playerKeys: ['red', 'yellow'],
+    yourIndex: index,
     names: room.names,
     opponentConnected: Boolean(room.players[0] && room.players[1]),
+    ...game.snapshot(room, index),
   };
 }
 
@@ -88,23 +89,26 @@ io.on('connection', (socket) => {
     }
   };
 
-  socket.on('createRoom', (name) => {
+  socket.on('createRoom', (name, gameId) => {
     if (joinedCode) return;
     const code = generateCode(rooms);
-    const room = createRoom(code, socket.id, name);
+    const room = createRoom(code, socket.id, name, gameId);
     rooms.set(code, room);
     joinedCode = code;
     socket.join(code);
-    socket.emit('roomCreated', { code, player: 'red' });
+    socket.emit('roomCreated', { code, game: room.game, player: 'red' });
   });
 
-  socket.on('joinRoom', (raw, name) => {
+  socket.on('joinRoom', (raw, name, gameId) => {
     if (joinedCode) return;
     const code = String(raw || '').trim().toUpperCase();
     const room = rooms.get(code);
 
     if (!room) {
       return socket.emit('error', { message: 'Room not found — the code may be wrong or too old.', fatal: true });
+    }
+    if (gameId && room.game !== gameId) {
+      return socket.emit('error', { message: 'This room is playing a different game.', fatal: true });
     }
     // Release slots whose sockets are no longer actually connected (e.g. a
     // page reload whose old socket hasn't fired disconnect yet).
@@ -128,14 +132,24 @@ io.on('connection', (socket) => {
     emitGameState(room);
   });
 
-  socket.on('makeMove', (col) => {
+  socket.on('makeMove', (action) => {
     if (!joinedCode) return;
     const room = rooms.get(joinedCode);
     if (!room) return;
-    const res = applyMove(room, socket.id, col);
+    const res = applyMove(room, socket.id, action);
     if (!res.ok) {
       return socket.emit('error', { message: res.message, fatal: false });
     }
+    emitGameState(room);
+  });
+
+  socket.on('nextRound', () => {
+    if (!joinedCode) return;
+    const room = rooms.get(joinedCode);
+    if (!room || room.game !== 'rps') return;
+    const st = room.state;
+    if (!st.resolved) return;
+    games.rps.nextRound(room);
     emitGameState(room);
   });
 
@@ -143,12 +157,7 @@ io.on('connection', (socket) => {
     if (!joinedCode) return;
     const room = rooms.get(joinedCode);
     if (!room || !room.winner || !(room.players[0] && room.players[1])) return;
-    room.board = emptyBoard();
-    room.turn = 0;
-    room.winner = null;
-    room.winCells = [];
-    room.lastMove = null;
-    room.moveCount = 0;
+    resetGame(room);
     emitGameState(room);
   });
 
