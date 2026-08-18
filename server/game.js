@@ -22,11 +22,12 @@ function emptyBoard() {
   return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 }
 
-function createRoom(code, playerId) {
+function createRoom(code, playerId, name) {
   return {
     code,
     board: emptyBoard(),
     players: [playerId, null],
+    names: [name || 'Player 1', null],
     turn: 0,
     winner: null,
     winCells: [],

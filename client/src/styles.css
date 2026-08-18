@@ -303,6 +303,33 @@ body {
   border-radius: var(--radius-md);
 }
 
+.name-input-row {
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.name-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.name-input:focus {
+  border-color: var(--accent);
+}
+
+.name-input::placeholder {
+  color: var(--text-dim);
+}
+
 .link-text {
   flex: 1;
   overflow: hidden;

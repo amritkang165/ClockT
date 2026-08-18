@@ -38,13 +38,17 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [copied, setCopied] = useState(false);
   const [hoveredCol, setHoveredCol] = useState(-1);
+  const [myName, setMyName] = useState('');
+  const [names, setNames] = useState(['Player 1', 'Player 2']);
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('room');
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('room');
+    const name = params.get('name');
     if (code) {
       setRoomCode(code.toUpperCase());
+      if (name) setMyName(name);
       setScreen('joining');
-      socket.emit('joinRoom', code);
     }
   }, []);
 
@@ -58,6 +62,7 @@ export default function App() {
       setWinCells([]);
       setLastMove(null);
       setOpponentConnected(false);
+      setNames([myName || 'Player 1', 'Player 2']);
       setScreen('waiting');
     };
 
@@ -70,6 +75,7 @@ export default function App() {
       setWinCells(state.winCells || []);
       setLastMove(state.lastMove);
       setOpponentConnected(state.opponentConnected);
+      if (state.names) setNames(state.names);
       setScreen(state.winner ? 'over' : 'playing');
     };
 
@@ -83,8 +89,11 @@ export default function App() {
       }
     };
 
-    const onOpponentLeft = () => {
+    const onOpponentLeft = ({ name }) => {
       setOpponentConnected(false);
+      const leftName = name || 'Opponent';
+      setToast(`${leftName} left the game`);
+      window.setTimeout(() => setToast(''), 4000);
     };
 
     socket.on('roomCreated', onRoomCreated);
@@ -97,7 +106,7 @@ export default function App() {
       socket.off('error', onError);
       socket.off('opponentLeft', onOpponentLeft);
     };
-  }, []);
+  }, [myName]);
 
   useEffect(() => {
     if (winnerKey === 'red' || winnerKey === 'yellow') {
@@ -112,7 +121,7 @@ export default function App() {
   const myKey = myIndex === 0 ? 'red' : 'yellow';
   const myTurn = turn === myIndex && !winnerKey;
   const shareLink = roomCode
-    ? `${window.location.origin}${window.location.pathname}?room=${roomCode}`
+    ? `${window.location.origin}${window.location.pathname}?room=${roomCode}&name=${encodeURIComponent(names[1] || 'Player 2')}`
     : '';
   const gameActive = screen === 'playing' || screen === 'over';
 
@@ -133,6 +142,15 @@ export default function App() {
   const goHome = () => {
     window.history.replaceState(null, '', window.location.pathname);
     setScreen('landing');
+    setMyName('');
+  };
+
+  const handleCreate = () => {
+    socket.emit('createRoom', myName.trim() || undefined);
+  };
+
+  const handleJoin = () => {
+    socket.emit('joinRoom', roomCode, myName.trim() || undefined);
   };
 
   const statusText = !opponentConnected
@@ -145,17 +163,13 @@ export default function App() {
           : 'You lose!'
         : myTurn
           ? 'Your turn — drop a disc'
-          : 'Opponent is thinking...';
+          : `${names[myIndex === 0 ? 1 : 0]}'s turn`;
 
   const wonCells = useMemo(() => {
     return new Set(winCells.map(([r, c]) => `${r}-${c}`));
   }, [winCells]);
 
-  const previewSet = useMemo(() => {
-    const s = new Set();
-    PREVIEW_PIECES.forEach(([r, c]) => s.add(`${r}-${c}`));
-    return s;
-  }, []);
+  const displayName = (idx) => names[idx] || `Player ${idx + 1}`;
 
   return (
     <main className="app">
@@ -177,9 +191,21 @@ export default function App() {
             room, share the link, and play with a friend.
           </p>
 
+          <div className="name-input-row">
+            <input
+              type="text"
+              className="name-input"
+              placeholder="Enter your name"
+              value={myName}
+              onChange={(e) => setMyName(e.target.value)}
+              maxLength={20}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            />
+          </div>
+
           <button
             className="btn btn-primary"
-            onClick={() => socket.emit('createRoom')}
+            onClick={handleCreate}
           >
             Create a game
           </button>
@@ -188,13 +214,12 @@ export default function App() {
             <div className="preview-grid">
               {Array.from({ length: 4 }, (_, r) =>
                 Array.from({ length: 7 }, (_, c) => {
-                  const key = `${r + 2}-${c}`;
                   const piece = PREVIEW_PIECES.find(
                     ([pr, pc]) => pr === r + 2 && pc === c
                   );
                   return (
                     <div
-                      key={key}
+                      key={`${r + 2}-${c}`}
                       className={`preview-cell ${piece ? piece[2] : ''}`}
                     />
                   );
@@ -210,8 +235,22 @@ export default function App() {
       {screen === 'joining' && (
         <section className="screen" key="joining">
           <div className="card">
-            <div className="spinner" />
-            <p className="text-bold">Joining room...</p>
+            <p className="card-title">Join game</p>
+            <div className="name-input-row">
+              <input
+                type="text"
+                className="name-input"
+                placeholder="Enter your name"
+                value={myName}
+                onChange={(e) => setMyName(e.target.value)}
+                maxLength={20}
+                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                autoFocus
+              />
+            </div>
+            <button className="btn btn-primary" onClick={handleJoin}>
+              Join game
+            </button>
           </div>
         </section>
       )}
@@ -271,7 +310,7 @@ export default function App() {
                   }`}
                 >
                   <span className="chip red" />
-                  <span>{myIndex === 0 ? 'You' : 'Player 1'}</span>
+                  <span>{myIndex === 0 ? `${myName || 'You'} (You)` : displayName(0)}</span>
                 </div>
                 <span className="vs">vs</span>
                 <div
@@ -280,7 +319,7 @@ export default function App() {
                   }`}
                 >
                   <span className="chip yellow" />
-                  <span>{myIndex === 1 ? 'You' : 'Player 2'}</span>
+                  <span>{myIndex === 1 ? `${myName || 'You'} (You)` : displayName(1)}</span>
                 </div>
               </div>
             </header>
@@ -377,8 +416,8 @@ export default function App() {
                       {winnerKey === 'draw'
                         ? "It's a draw!"
                         : winnerKey === myKey
-                          ? 'You win!'
-                          : 'You lose!'}
+                          ? `${myName || 'You'} win!`
+                          : `${displayName(myIndex === 0 ? 1 : 0)} wins!`}
                     </h2>
                     <p>
                       {winnerKey === 'draw'

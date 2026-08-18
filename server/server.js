@@ -43,6 +43,7 @@ function snapshot(room, socketId) {
     lastMove: room.lastMove,
     yourIndex: playerIndex(room, socketId),
     playerKeys: ['red', 'yellow'],
+    names: room.names,
     opponentConnected: Boolean(room.players[0] && room.players[1]),
   };
 }
@@ -64,7 +65,9 @@ io.on('connection', (socket) => {
     const room = rooms.get(code);
     if (!room) return;
     const index = room.players[0] === socket.id ? 0 : 1;
+    const leavingName = room.names[index];
     room.players[index] = null;
+    room.names[index] = null;
     joinedCode = null;
 
     const otherIndex = 1 - index;
@@ -81,21 +84,21 @@ io.on('connection', (socket) => {
     }
     if (other) {
       io.to(other).emit('gameState', snapshot(room, other));
-      io.to(other).emit('opponentLeft');
+      io.to(other).emit('opponentLeft', { name: leavingName });
     }
   };
 
-  socket.on('createRoom', () => {
+  socket.on('createRoom', (name) => {
     if (joinedCode) return;
     const code = generateCode(rooms);
-    const room = createRoom(code, socket.id);
+    const room = createRoom(code, socket.id, name);
     rooms.set(code, room);
     joinedCode = code;
     socket.join(code);
     socket.emit('roomCreated', { code, player: 'red' });
   });
 
-  socket.on('joinRoom', (raw) => {
+  socket.on('joinRoom', (raw, name) => {
     if (joinedCode) return;
     const code = String(raw || '').trim().toUpperCase();
     const room = rooms.get(code);
@@ -118,6 +121,7 @@ io.on('connection', (socket) => {
 
     const index = room.players[0] === null ? 0 : 1;
     room.players[index] = socket.id;
+    room.names[index] = name || `Player ${index + 1}`;
     joinedCode = code;
     socket.join(code);
     socket.emit('gameState', snapshot(room, socket.id));
