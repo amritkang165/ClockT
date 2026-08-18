@@ -38,6 +38,36 @@ npm run dev
 ```
 
 - Client: http://localhost:5173
+
+### Production
+
+```bash
+npm run build && npm start
+```
+
+- Server (has built client baked in): http://localhost:3001
+
+## Deployment (free, stable URL)
+
+Two deploy-ready files are included: `render.yaml` (Render Blueprint) and a
+`Procfile`.
+
+**Render** (recommended — free tier)
+
+1. Push this repo to GitHub
+2. Go to https://render.com and sign up (free)
+3. Dashboard → **New** → **Blueprint**
+4. Connect your GitHub repo (`connect4-online`)
+5. Render reads `render.yaml`, provisions the service, runs
+   `npm install && npm run build`, and starts it
+6. You get a stable URL like `https://connect4-online.onrender.com`
+
+Notes:
+
+- Share links in the app use the site's own origin (no config needed).
+- The free-tier service sleeps after ~15 min idle and wakes on the first request.
+- No `.env` needed in production; `VITE_PUBLIC_URL` is only for local dev with a
+  tunnel.
 - Server: http://localhost:3001
 
 ### Production Build

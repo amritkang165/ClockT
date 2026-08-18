@@ -7,6 +7,14 @@ import TicTacToe from './games/TicTacToe';
 import Rps from './games/Rps';
 import './styles.css';
 
+// Public origin used in share links so invites never point at localhost, even
+// when the app is being viewed locally. Set VITE_PUBLIC_URL in client/.env to
+// override; when unset (e.g. production builds) it falls back to the site's
+// own origin.
+const PUBLIC_ORIGIN =
+  (import.meta.env.VITE_PUBLIC_URL || '').replace(/\/$/, '') ||
+  window.location.origin;
+
 const PREVIEW_PIECES = [
   [3, 0, 'red'],
   [3, 1, 'red'],
@@ -151,7 +159,7 @@ export default function App() {
   const displayName = (idx) => names[idx] || `Player ${idx + 1}`;
 
   const shareLink = roomCode
-    ? `${window.location.origin}${window.location.pathname}?room=${roomCode}&game=${game}&name=${encodeURIComponent(names[1] || 'Player 2')}`
+    ? `${PUBLIC_ORIGIN}?room=${roomCode}&game=${game}&name=${encodeURIComponent(names[1] || 'Player 2')}`
     : '';
   const gameActive = screen === 'playing' || screen === 'over';
 
