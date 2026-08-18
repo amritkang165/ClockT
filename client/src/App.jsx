@@ -1,7 +1,28 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { socket } from './socket';
 import './styles.css';
+
+const ROWS = 6;
+const COLS = 7;
+function emptyBoard() {
+  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+}
+
+const PREVIEW_PIECES = [
+  [3, 0, 'red'],
+  [3, 1, 'red'],
+  [2, 1, 'red'],
+  [3, 2, 'yellow'],
+  [3, 3, 'yellow'],
+  [2, 3, 'red'],
+  [1, 3, 'yellow'],
+  [3, 4, 'red'],
+  [3, 5, 'yellow'],
+  [2, 5, 'yellow'],
+  [2, 6, 'red'],
+  [3, 6, 'yellow'],
+];
 
 export default function App() {
   const [screen, setScreen] = useState('landing');
@@ -121,65 +142,68 @@ export default function App() {
       : winnerKey
         ? winnerKey === myKey
           ? 'You win!'
-          : 'Opponent wins!'
+          : 'You lose!'
         : myTurn
-          ? 'Your turn'
-          : 'Opponent\'s turn';
+          ? 'Your turn — drop a disc'
+          : 'Opponent is thinking...';
 
   const wonCells = useMemo(() => {
     return new Set(winCells.map(([r, c]) => `${r}-${c}`));
   }, [winCells]);
 
+  const previewSet = useMemo(() => {
+    const s = new Set();
+    PREVIEW_PIECES.forEach(([r, c]) => s.add(`${r}-${c}`));
+    return s;
+  }, []);
+
   return (
     <main className="app">
       {screen === 'landing' && (
         <section className="screen" key="landing">
-          <div className="center-col">
-            <h1 className="title">
-              Connect<span className="title-accent">4</span>
-            </h1>
-            <p className="subtitle">
-              Create a room, share the link, play with a friend.
-            </p>
-            <button className="btn btn-primary" onClick={() => socket.emit('createRoom')}>
-              Create a game
-            </button>
-
-            <div className="board-preview">
-              <div className="preview-grid">
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell red" />
-                <div className="preview-cell" />
-                <div className="preview-cell yellow" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell" />
-                <div className="preview-cell red" />
-                <div className="preview-cell" />
-                <div className="preview-cell yellow" />
-                <div className="preview-cell red" />
-                <div className="preview-cell" />
-                <div className="preview-cell yellow" />
-                <div className="preview-cell red" />
-                <div className="preview-cell red" />
-                <div className="preview-cell yellow" />
-                <div className="preview-cell red" />
-                <div className="preview-cell yellow" />
-                <div className="preview-cell yellow" />
-                <div className="preview-cell red" />
-              </div>
-            </div>
-
-            <p className="meta">No sign-up &middot; Real-time &middot; Free</p>
+          <div className="logo" aria-hidden="true">
+            <span className="logo-dot red" />
+            <span className="logo-dot yellow" />
+            <span className="logo-dot yellow" />
+            <span className="logo-dot red" />
           </div>
+
+          <h1 className="title">
+            Connect<span className="title-accent">4</span>
+          </h1>
+
+          <p className="subtitle">
+            The classic strategy game, reimagined for the modern web. Create a
+            room, share the link, and play with a friend.
+          </p>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => socket.emit('createRoom')}
+          >
+            Create a game
+          </button>
+
+          <div className="board-preview" aria-hidden="true">
+            <div className="preview-grid">
+              {Array.from({ length: 4 }, (_, r) =>
+                Array.from({ length: 7 }, (_, c) => {
+                  const key = `${r + 2}-${c}`;
+                  const piece = PREVIEW_PIECES.find(
+                    ([pr, pc]) => pr === r + 2 && pc === c
+                  );
+                  return (
+                    <div
+                      key={key}
+                      className={`preview-cell ${piece ? piece[2] : ''}`}
+                    />
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <p className="meta">No sign-up · Real-time · Free</p>
         </section>
       )}
 
@@ -187,7 +211,7 @@ export default function App() {
         <section className="screen" key="joining">
           <div className="card">
             <div className="spinner" />
-            <p className="text-muted">Joining room...</p>
+            <p className="text-bold">Joining room...</p>
           </div>
         </section>
       )}
@@ -207,18 +231,20 @@ export default function App() {
       {screen === 'waiting' && (
         <section className="screen" key="waiting">
           <div className="card">
-            <p className="text-muted text-sm">Room created</p>
+            <p className="card-title">Room created</p>
             <div className="room-code">{roomCode}</div>
-            <p className="text-muted text-sm">Share this link with your opponent</p>
+            <p className="card-title">
+              Share this link with your opponent
+            </p>
             <div className="link-row">
               <span className="link-text">{shareLink}</span>
-              <button className="btn btn-sm" onClick={copyLink}>
+              <button className="btn btn-secondary" onClick={copyLink}>
                 {copied ? 'Copied!' : 'Copy Link'}
               </button>
             </div>
             <div className="waiting">
-              <div className="spinner small" />
-              <span className="text-muted">Waiting for opponent...</span>
+              <div className="spinner sm" />
+              <span>Waiting for opponent to join...</span>
             </div>
           </div>
         </section>
@@ -230,62 +256,88 @@ export default function App() {
             <header className="header">
               <span className="room-tag">Room {roomCode}</span>
               <div className="players">
-                <div className={`player ${turn === 0 && !winnerKey ? 'active' : ''}`}>
+                <div
+                  className={`player ${
+                    turn === 0 && !winnerKey ? 'active' : ''
+                  }`}
+                >
                   <span className="chip red" />
-                  <span>{myIndex === 0 ? 'You' : 'P1'}</span>
+                  <span>{myIndex === 0 ? 'You' : 'Player 1'}</span>
                 </div>
                 <span className="vs">vs</span>
-                <div className={`player ${turn === 1 && !winnerKey ? 'active' : ''}`}>
+                <div
+                  className={`player ${
+                    turn === 1 && !winnerKey ? 'active' : ''
+                  }`}
+                >
                   <span className="chip yellow" />
-                  <span>{myIndex === 1 ? 'You' : 'P2'}</span>
+                  <span>{myIndex === 1 ? 'You' : 'Player 2'}</span>
                 </div>
               </div>
             </header>
 
-            <div
-              className={`board-frame ${myTurn ? 'your-turn' : ''}`}
-              onMouseLeave={() => setHoveredCol(-1)}
-            >
-              <div className="hover-row">
-                {Array.from({ length: 7 }, (_, c) => (
-                  <div
-                    key={c}
-                    className={`hover-cell ${hoveredCol === c && myTurn && board[0][c] === null ? 'show' : ''}`}
-                  >
-                    <div className={`piece-preview ${myKey}`} />
-                  </div>
-                ))}
-              </div>
-
-              <div className="board">
-                {board.map((rowArr, r) =>
-                  rowArr.map((val, c) => (
+            <div className="board-wrap">
+              <div
+                className={`board-frame ${
+                  myTurn && !winnerKey ? 'your-turn' : ''
+                }`}
+                onMouseLeave={() => setHoveredCol(-1)}
+              >
+                <div className="hover-row">
+                  {Array.from({ length: COLS }, (_, c) => (
                     <div
-                      key={`${r}-${c}`}
-                      className={`cell ${hoveredCol === c && myTurn ? 'col-hover' : ''} ${val ? 'filled' : ''}`}
-                      onMouseEnter={() => setHoveredCol(c)}
-                      onClick={() => drop(c)}
+                      key={c}
+                      className={`hover-cell ${
+                        hoveredCol === c &&
+                        myTurn &&
+                        board[0][c] === null
+                          ? 'show'
+                          : ''
+                      }`}
                     >
-                      {val && (
-                        <div
-                          className={`piece ${val} ${
-                            lastMove &&
-                            lastMove.row === r &&
-                            lastMove.col === c &&
-                            !wonCells.has(`${r}-${c}`)
-                              ? 'drop-in'
-                              : ''
-                          } ${wonCells.has(`${r}-${c}`) ? 'won' : ''}`}
-                          style={
-                            lastMove && lastMove.row === r && lastMove.col === c
-                              ? { '--row': r }
-                              : undefined
-                          }
-                        />
-                      )}
+                      <div className={`piece-preview ${myKey}`} />
                     </div>
-                  ))
-                )}
+                  ))}
+                </div>
+
+                <div className={`board ${myTurn ? '' : 'locked'}`}>
+                  {board.map((rowArr, r) =>
+                    rowArr.map((val, c) => (
+                      <div
+                        key={`${r}-${c}`}
+                        className={`cell ${
+                          hoveredCol === c && myTurn && !val
+                            ? 'col-hover'
+                            : ''
+                        } ${val ? 'filled' : ''}`}
+                        onMouseEnter={() => setHoveredCol(c)}
+                        onClick={() => drop(c)}
+                      >
+                        {val && (
+                          <div
+                            className={`piece ${val} ${
+                              lastMove &&
+                              lastMove.row === r &&
+                              lastMove.col === c &&
+                              !wonCells.has(`${r}-${c}`)
+                                ? 'drop-in'
+                                : ''
+                            } ${
+                              wonCells.has(`${r}-${c}`) ? 'won' : ''
+                            }`}
+                            style={
+                              lastMove &&
+                              lastMove.row === r &&
+                              lastMove.col === c
+                                ? { '--row': r }
+                                : undefined
+                            }
+                          />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
 
               <p className="status">{statusText}</p>
@@ -297,6 +349,21 @@ export default function App() {
               {winnerKey && (
                 <div className="overlay">
                   <div className="result">
+                    <div
+                      className={`result-icon ${
+                        winnerKey === 'draw'
+                          ? 'draw'
+                          : winnerKey === myKey
+                            ? 'win'
+                            : 'lose'
+                      }`}
+                    >
+                      {winnerKey === 'draw'
+                        ? '='
+                        : winnerKey === myKey
+                          ? '✓'
+                          : '✗'}
+                    </div>
                     <h2>
                       {winnerKey === 'draw'
                         ? "It's a draw!"
@@ -304,6 +371,11 @@ export default function App() {
                           ? 'You win!'
                           : 'You lose!'}
                     </h2>
+                    <p>
+                      {winnerKey === 'draw'
+                        ? 'No more moves available.'
+                        : 'Nice 4-in-a-row!'}
+                    </p>
                     <button
                       className="btn btn-primary"
                       onClick={() => socket.emit('playAgain')}
@@ -319,10 +391,4 @@ export default function App() {
       )}
     </main>
   );
-}
-
-const ROWS = 6;
-const COLS = 7;
-function emptyBoard() {
-  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 }
