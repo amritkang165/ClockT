@@ -215,6 +215,8 @@ export default function App() {
             <span className="logo-dot red" />
           </div>
 
+          <p className="kicker">Real-time multiplayer</p>
+
           <h1 className="title">
             Game<span className="title-accent">Hub</span>
           </h1>
@@ -238,7 +240,7 @@ export default function App() {
             ))}
           </div>
 
-          <div className="name-input-row landing-name">
+          <div className="cta-row">
             <input
               type="text"
               className="name-input"
@@ -248,11 +250,10 @@ export default function App() {
               maxLength={20}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             />
+            <button className="btn btn-primary" onClick={handleCreate}>
+              Create a {gameTitle(game)} game
+            </button>
           </div>
-
-          <button className="btn btn-primary" onClick={handleCreate}>
-            Create a {gameTitle(game)} game
-          </button>
 
           <div className="board-preview" aria-hidden="true">
             <div className="preview-grid">
