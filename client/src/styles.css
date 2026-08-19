@@ -11,20 +11,25 @@
 }
 
 :root {
-  --bg: #0c0e13;
-  --surface: #13161d;
-  --surface-2: #1a1e27;
-  --surface-3: #232834;
-  --border: #262b36;
-  --border-strong: #333a48;
-  --text: #e9ecf2;
-  --text-dim: #99a2b3;
-  --text-muted: #626c7f;
+  --bg: #12141d;
+  --surface: #1a1d29;
+  --surface-2: #232736;
+  --surface-3: #2e3348;
+  --border: #2a3042;
+  --border-strong: #3b4258;
+  --text: #eef0f8;
+  --text-dim: #a4a9c2;
+  --text-muted: #6d738d;
 
-  --red: #e5484d;
-  --yellow: #f5a524;
-  --blue: #6b84ff;
-  --green: #4ac26b;
+  --red: #ef4a63;
+  --yellow: #f5b642;
+
+  --accent: #8b5cf6;
+  --accent-2: #a78bfa;
+  --accent-soft: rgba(139, 92, 246, 0.14);
+
+  --blue: #8b5cf6;
+  --green: #4ade80;
 
   --mono: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
 
@@ -114,7 +119,7 @@ body {
   font-size: 0.68rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--accent-2);
   margin-bottom: 12px;
 }
 
@@ -130,7 +135,7 @@ body {
 }
 
 .title-accent {
-  color: var(--yellow);
+  color: var(--accent-2);
 }
 
 .subtitle {
@@ -177,8 +182,9 @@ body {
 }
 
 .game-card.selected {
-  border-color: var(--yellow);
+  border-color: var(--accent);
   background: var(--surface-2);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.18), 0 12px 34px rgba(139, 92, 246, 0.1);
 }
 
 .game-card-title {
@@ -313,8 +319,8 @@ body {
 .btn-primary {
   font-size: 0.92rem;
   padding: 13px 26px;
-  background: var(--yellow);
-  color: #161300;
+  background: var(--accent);
+  color: #fff;
   white-space: nowrap;
 }
 
@@ -634,7 +640,7 @@ body {
 }
 
 .board-frame.your-turn {
-  border-color: var(--yellow);
+  border-color: var(--accent);
 }
 
 .hover-row {
@@ -895,7 +901,7 @@ body {
 }
 
 .ttt-frame.your-turn {
-  border-color: var(--yellow);
+  border-color: var(--accent);
 }
 
 .ttt-board {
@@ -1050,7 +1056,7 @@ body {
 }
 
 .rps-btn.picked {
-  border-color: var(--yellow);
+  border-color: var(--accent);
   color: var(--text);
   background: var(--surface-2);
 }
@@ -1330,8 +1336,8 @@ html {
 }
 
 .nav-links .nav-play:hover {
-  border-color: var(--yellow);
-  color: var(--yellow);
+  border-color: var(--accent);
+  color: var(--accent-2);
 }
 
 /* --- Hero --- */
@@ -1484,7 +1490,7 @@ html {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--yellow);
+  background: var(--accent);
 }
 
 @keyframes marquee {
@@ -1577,8 +1583,8 @@ html {
 .game-card-selected {
   font-family: var(--mono);
   font-size: 0.6rem;
-  color: var(--yellow);
-  border: 1px solid rgba(245, 165, 36, 0.45);
+  color: var(--accent-2);
+  border: 1px solid rgba(139, 92, 246, 0.45);
   padding: 3px 9px;
   border-radius: 999px;
   letter-spacing: 0.08em;
@@ -1594,7 +1600,7 @@ html {
 
 .game-card.big:hover .game-card-arrow {
   transform: translateX(6px);
-  color: var(--yellow);
+  color: var(--accent-2);
 }
 
 /* --- How it works --- */
@@ -1617,7 +1623,7 @@ html {
 .how-num {
   font-family: var(--mono);
   font-size: 0.85rem;
-  color: var(--yellow);
+  color: var(--accent-2);
   display: block;
   margin-bottom: 16px;
 }
@@ -1659,7 +1665,7 @@ html {
 }
 
 .play-game {
-  color: var(--yellow);
+  color: var(--accent-2);
 }
 
 .play-form .cta-row {
@@ -1856,5 +1862,5 @@ button:focus-visible {
 }
 
 ::selection {
-  background: rgba(107, 132, 255, 0.3);
+  background: rgba(139, 92, 246, 0.35);
 }
