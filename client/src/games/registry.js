@@ -2,19 +2,19 @@ export const GAMES = [
   {
     id: 'connect4',
     title: 'Connect 4',
-    tagline: 'Drop discs, line up four',
+    tagline: 'Drop your animal, line up four',
     icon: 'c4',
   },
   {
     id: 'tictactoe',
     title: 'Tic-Tac-Toe',
-    tagline: 'Get three in a row',
+    tagline: 'Three in a row wins',
     icon: 'ttt',
   },
   {
     id: 'rps',
-    title: 'Rock Paper Scissors',
-    tagline: 'First to 3 wins',
+    title: 'Animal Clash',
+    tagline: 'Bear, hawk, snake — first to 3',
     icon: 'rps',
   },
 ];

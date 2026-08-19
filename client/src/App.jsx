@@ -5,7 +5,13 @@ import { GAMES, gameTitle } from './games/registry';
 import Connect4 from './games/Connect4';
 import TicTacToe from './games/TicTacToe';
 import Rps from './games/Rps';
+import { FoxFace, PandaFace, BearFace, HawkFace, SnakeFace, Fox, Panda } from './art.jsx';
 import './styles.css';
+
+const TEAMS = {
+  red: { name: 'Fox', face: FoxFace, team: 'fox' },
+  yellow: { name: 'Panda', face: PandaFace, team: 'panda' },
+};
 
 const PREVIEW_PIECES = [
   [3, 0, 'red'],
@@ -23,15 +29,11 @@ const PREVIEW_PIECES = [
 ];
 
 const HOW_STEPS = [
-  { n: '01', title: 'Pick a game', text: 'Choose Connect 4, Tic-Tac-Toe, or Rock Paper Scissors.' },
-  { n: '02', title: 'Share the link', text: 'Create a room and send the invite link to a friend.' },
-  { n: '03', title: 'Play live', text: 'Moves sync instantly over WebSockets. Good luck.' },
+  { n: '01', title: 'Pick a game', text: 'Connect 4, Tic-Tac-Toe, or Animal Clash.' },
+  { n: '02', title: 'Share your room link', text: 'Your friend joins and picks an animal, too.' },
+  { n: '03', title: 'Play live', text: 'Moves sync over WebSockets. Your animal celebrates.' },
 ];
 
-// Public origin used in share links so invites never point at localhost, even
-// when the app is being viewed locally. Set VITE_PUBLIC_URL in client/.env to
-// override; when unset (e.g. production builds) it falls back to the site's
-// own origin.
 const PUBLIC_ORIGIN =
   (import.meta.env.VITE_PUBLIC_URL || '').replace(/\/$/, '') ||
   window.location.origin;
@@ -66,37 +68,35 @@ function Reveal({ as: Tag = 'div', delay = 0, className = '', children }) {
   );
 }
 
-function GameIcon({ icon }) {
+function GameArt({ icon }) {
   if (icon === 'c4') {
     return (
-      <div className="gicon c4" aria-hidden="true">
-        <span className="gdot red" />
-        <span className="gdot yellow" />
-        <span className="gdot yellow" />
-        <span className="gdot red" />
+      <div className="g-art c4" aria-hidden="true">
+        <span className="g-disc fox"><FoxFace /></span>
+        <span className="g-disc panda"><PandaFace /></span>
       </div>
     );
   }
   if (icon === 'ttt') {
     return (
-      <div className="gicon ttt" aria-hidden="true">
-        <span>X</span>
-        <span />
-        <span>O</span>
-        <span />
-        <span className="mid">X</span>
-        <span />
-        <span>O</span>
-        <span />
-        <span>X</span>
+      <div className="g-art ttt" aria-hidden="true">
+        <span><FoxFace /></span>
+        <span className="empty" />
+        <span><PandaFace /></span>
+        <span className="empty" />
+        <span className="mid"><FoxFace /></span>
+        <span className="empty" />
+        <span><PandaFace /></span>
+        <span className="empty" />
+        <span><FoxFace /></span>
       </div>
     );
   }
   return (
-    <div className="gicon rps" aria-hidden="true">
-      <span className="gdot red" />
-      <span className="gdot yellow" />
-      <span className="gdot red" />
+    <div className="g-art rps" aria-hidden="true">
+      <span className="rps-bear"><BearFace /></span>
+      <span className="rps-hawk"><HawkFace /></span>
+      <span className="rps-snake"><SnakeFace /></span>
     </div>
   );
 }
@@ -187,6 +187,7 @@ export default function App() {
 
   const myIndex = state ? state.yourIndex : 0;
   const myKey = myIndex === 0 ? 'red' : 'yellow';
+  const myTeam = TEAMS[myKey];
   const myTurn = state ? state.turn === myIndex && !winnerKey : false;
   const opponentConnected = state ? state.opponentConnected : false;
   const displayName = (idx) => names[idx] || `Player ${idx + 1}`;
@@ -222,24 +223,28 @@ export default function App() {
 
   let status = '';
   if (gameActive && state) {
+    const oppAnimal = TEAMS[myIndex === 0 ? 'yellow' : 'red'].name;
     if (!opponentConnected) {
       status = 'Waiting for opponent...';
     } else if (winnerKey === 'draw') {
       status = "It's a draw!";
     } else if (winnerKey) {
-      status = winnerKey === myKey ? 'You win!' : 'You lose!';
+      status = `${TEAMS[winnerKey].name} wins!`;
     } else if (myTurn) {
-      status = game === 'rps' ? 'Pick your move' : 'Your turn';
+      status =
+        game === 'connect4' ? 'Drop your animal!' :
+        game === 'tictactoe' ? 'Place your animal' :
+        'Pick your move';
     } else {
-      status = game === 'rps'
-        ? 'Waiting for opponent...'
-        : `${displayName(myIndex === 0 ? 1 : 0)}'s turn`;
+      status = `${oppAnimal} is thinking…`;
     }
   }
 
   const scrollTo = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const WinnerFace = TEAMS[winnerKey] ? TEAMS[winnerKey].face : null;
 
   return (
     <main className="app">
@@ -248,8 +253,8 @@ export default function App() {
           <nav className="navbar">
             <a className="brand" href="#top" onClick={(e) => { e.preventDefault(); scrollTo('top'); }}>
               <span className="logo-mini" aria-hidden="true">
-                <span className="logo-dot red" />
-                <span className="logo-dot yellow" />
+                <FoxFace className="logo-fox" />
+                <PandaFace className="logo-panda" />
               </span>
               ClockT
             </a>
@@ -263,43 +268,51 @@ export default function App() {
           <header className="hero" id="top">
             <div className="hero-inner">
               <Reveal>
-                <p className="kicker">Real-time multiplayer</p>
+                <p className="kicker">Cute animals. Real games.</p>
               </Reveal>
               <Reveal delay={80}>
                 <h1 className="title">
-                  Play <span className="title-accent">three classics</span>.<br />
-                  With a friend.
+                  <span className="title-fox">Fox</span> vs.{' '}
+                  <span className="title-panda">Panda</span>
                 </h1>
               </Reveal>
-              <Reveal delay={160}>
+              <Reveal delay={140}>
                 <p className="subtitle">
-                  Three games. One shared room. No sign-up — create a game,
-                  send the link, and start playing instantly.
+                  Pick your animal and square off in Connect 4, Tic-Tac-Toe, or
+                  Animal Clash. Create a room, share the link, play live.
                 </p>
               </Reveal>
-              <Reveal delay={240}>
+              <Reveal delay={200}>
                 <div className="hero-cta">
                   <button className="btn btn-primary" onClick={() => scrollTo('play')}>
                     Create a game
                   </button>
-                  <a className="text-link" href="#how" onClick={(e) => { e.preventDefault(); scrollTo('how'); }}>
-                    How it works
+                  <a className="text-link" href="#games" onClick={(e) => { e.preventDefault(); scrollTo('games'); }}>
+                    See the games
                   </a>
                 </div>
               </Reveal>
             </div>
+            <Reveal delay={180} className="hero-mascots-wrap">
+              <div className="hero-mascots" aria-hidden="true">
+                <span className="blob blob-a" />
+                <span className="blob blob-b" />
+                <Fox className="mascot mascot-fox" />
+                <Panda className="mascot mascot-panda" />
+              </div>
+            </Reveal>
           </header>
 
           <section className="section games-section" id="games">
             <Reveal>
               <p className="kicker">The games</p>
             </Reveal>
-            <Reveal delay={80}>
+            <Reveal delay={60}>
               <h2 className="section-title">Choose your game</h2>
             </Reveal>
             <div className="game-grid">
               {GAMES.map((g, i) => (
-                <Reveal key={g.id} delay={i * 80}>
+                <Reveal key={g.id} delay={i * 90}>
                   <button
                     className={`game-card ${game === g.id ? 'selected' : ''}`}
                     onClick={() => setGame(g.id)}
@@ -308,7 +321,7 @@ export default function App() {
                       <span className="game-card-num">0{i + 1}</span>
                       {game === g.id && <span className="game-card-selected">Selected</span>}
                     </span>
-                    <GameIcon icon={g.icon} />
+                    <GameArt icon={g.icon} />
                     <span className="game-card-title">{g.title}</span>
                     <span className="game-card-tagline">{g.tagline}</span>
                   </button>
@@ -321,12 +334,12 @@ export default function App() {
             <Reveal>
               <p className="kicker">How it works</p>
             </Reveal>
-            <Reveal delay={80}>
+            <Reveal delay={60}>
               <h2 className="section-title">Live in three steps</h2>
             </Reveal>
             <div className="how-grid">
               {HOW_STEPS.map((s, i) => (
-                <Reveal key={s.n} delay={i * 80}>
+                <Reveal key={s.n} delay={i * 90}>
                   <div className="how-card">
                     <span className="how-num">{s.n}</span>
                     <h3>{s.title}</h3>
@@ -341,10 +354,10 @@ export default function App() {
             <Reveal>
               <p className="kicker">Ready when you are</p>
             </Reveal>
-            <Reveal delay={80}>
+            <Reveal delay={60}>
               <h2 className="section-title">Start a room — it&apos;s free</h2>
             </Reveal>
-            <Reveal delay={160}>
+            <Reveal delay={140}>
               <div className="play-box">
                 <div className="play-form">
                   <p className="play-selected">
@@ -373,11 +386,16 @@ export default function App() {
                           const piece = PREVIEW_PIECES.find(
                             ([pr, pc]) => pr === r + 2 && pc === c
                           );
+                          const Face = piece
+                            ? TEAMS[piece[2]].face
+                            : null;
                           return (
                             <div
                               key={`${r + 2}-${c}`}
                               className={`preview-cell ${piece ? piece[2] : ''}`}
-                            />
+                            >
+                              {piece && <Face />}
+                            </div>
                           );
                         })
                       )}
@@ -390,7 +408,7 @@ export default function App() {
 
           <footer className="footer">
             <span className="footer-brand">ClockT</span>
-            <p>Real-time multiplayer games. Built with React, Socket.io &amp; Node.</p>
+            <p>Fox vs. Panda. Real-time multiplayer games. Built with React, Socket.io &amp; Node.</p>
             <p className="footer-meta">No sign-up · Free</p>
           </footer>
         </section>
@@ -399,6 +417,10 @@ export default function App() {
       {screen === 'joining' && (
         <section className="screen" key="joining">
           <div className="card">
+            <div className="card-mascots" aria-hidden="true">
+              <FoxFace className="lm-fox" />
+              <PandaFace className="lm-panda" />
+            </div>
             <p className="card-title">Join {gameTitle(game)} game</p>
             <input
               type="text"
@@ -432,6 +454,10 @@ export default function App() {
       {screen === 'waiting' && (
         <section className="screen" key="waiting">
           <div className="card">
+            <div className="card-mascots" aria-hidden="true">
+              <FoxFace className="lm-fox" />
+              <PandaFace className="lm-panda" />
+            </div>
             <p className="card-title">{gameTitle(game)} · Room created</p>
             <div className="room-code">{roomCode}</div>
             <p className="card-title">Share this link with your opponent</p>
@@ -443,7 +469,7 @@ export default function App() {
             </div>
             <div className="waiting">
               <div className="spinner sm" />
-              <span>Waiting for opponent to join...</span>
+              <span>Waiting for your opponent to join...</span>
             </div>
           </div>
         </section>
@@ -465,13 +491,13 @@ export default function App() {
               </div>
               <div className="players">
                 <div className={`player ${state.turn === 0 && !winnerKey ? 'active' : ''}`}>
-                  <span className="chip red" />
-                  <span>{myIndex === 0 ? `${myName || 'You'} (You)` : displayName(0)}</span>
+                  <FoxFace className="pchip fox" />
+                  <span>{myIndex === 0 ? `${myName || 'You'}` : displayName(0)}</span>
                 </div>
                 <span className="vs">vs</span>
                 <div className={`player ${state.turn === 1 && !winnerKey ? 'active' : ''}`}>
-                  <span className="chip yellow" />
-                  <span>{myIndex === 1 ? `${myName || 'You'} (You)` : displayName(1)}</span>
+                  <PandaFace className="pchip panda" />
+                  <span>{myIndex === 1 ? `${myName || 'You'}` : displayName(1)}</span>
                 </div>
               </div>
             </header>
@@ -487,11 +513,7 @@ export default function App() {
                 />
               )}
               {game === 'tictactoe' && (
-                <TicTacToe
-                  state={state}
-                  myTurn={myTurn}
-                  winnerKey={winnerKey}
-                />
+                <TicTacToe state={state} myTurn={myTurn} winnerKey={winnerKey} />
               )}
               {game === 'rps' && (
                 <Rps
@@ -521,23 +543,24 @@ export default function App() {
                             : 'lose'
                       }`}
                     >
-                      {winnerKey === 'draw'
-                        ? '='
-                        : winnerKey === myKey
-                          ? '\u2713'
-                          : '\u2717'}
+                      {winnerKey === 'draw' ? (
+                        <>
+                          <FoxFace className="rm-fox" />
+                          <PandaFace className="rm-panda" />
+                        </>
+                      ) : (
+                        WinnerFace && <WinnerFace className="rm-mascot" />
+                      )}
                     </div>
                     <h2>
                       {winnerKey === 'draw'
                         ? "It's a draw!"
-                        : winnerKey === myKey
-                          ? `${myName || 'You'} win!`
-                          : `${displayName(myIndex === 0 ? 1 : 0)} wins!`}
+                        : `${TEAMS[winnerKey].name} takes the win!`}
                     </h2>
                     <p>
                       {winnerKey === 'draw'
                         ? 'No more moves available.'
-                        : 'Nice play!'}
+                        : 'Your animal did great tonight.'}
                     </p>
                     <button
                       className="btn btn-primary"

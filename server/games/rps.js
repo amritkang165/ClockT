@@ -1,5 +1,5 @@
-const MOVES = ['rock', 'paper', 'scissors'];
-const WIN_AGAINST = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+const MOVES = ['bear', 'hawk', 'snake'];
+const WIN_AGAINST = { bear: 'hawk', hawk: 'snake', snake: 'bear' };
 const WINS_TO_WIN = 3;
 
 function create() {
@@ -67,8 +67,8 @@ function snapshot(room, index) {
 
 module.exports = {
   id: 'rps',
-  title: 'Rock Paper Scissors',
-  tagline: 'First to 3 wins',
+  title: 'Animal Clash',
+  tagline: 'Bear, hawk, snake — first to 3 wins',
   MOVES,
   WINS_TO_WIN,
   create,
