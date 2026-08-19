@@ -38,7 +38,7 @@ const PUBLIC_ORIGIN =
   (import.meta.env.VITE_PUBLIC_URL || '').replace(/\/$/, '') ||
   window.location.origin;
 
-function Reveal({ as: Tag = 'div', delay = 0, className = '', children }) {
+function Reveal({ as: Tag = 'div', delay = 0, dir = '', className = '', children }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
@@ -60,13 +60,73 @@ function Reveal({ as: Tag = 'div', delay = 0, className = '', children }) {
   return (
     <Tag
       ref={ref}
-      className={`reveal ${className}`}
+      className={`reveal ${dir ? `dir-${dir}` : ''} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
     </Tag>
   );
 }
+
+function Cursor() {
+  useEffect(() => {
+    const fine = window.matchMedia('(any-pointer: fine)').matches;
+    if (!fine) return;
+    const dot = document.querySelector('.cursor-dot');
+    const ring = document.querySelector('.cursor-ring');
+    if (!dot || !ring) return;
+    document.body.classList.add('cursor-active');
+    let mx = window.innerWidth / 2;
+    let my = window.innerHeight / 2;
+    let rx = mx;
+    let ry = my;
+    let raf;
+    const onMove = (e) => {
+      mx = e.clientX;
+      my = e.clientY;
+    };
+    const onOver = (e) => {
+      const big = e.target.closest('button, a, input, .cell, .ttt-cell, .rps-btn, .game-card');
+      dot.classList.toggle('big', Boolean(big));
+      ring.classList.toggle('big', Boolean(big));
+    };
+    const onDown = () => dot.classList.add('click');
+    const onUp = () => dot.classList.remove('click');
+    const loop = () => {
+      rx += (mx - rx) * 0.18;
+      ry += (my - ry) * 0.18;
+      dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+      ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+      raf = requestAnimationFrame(loop);
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener('mouseover', onOver, { passive: true });
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseover', onOver);
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mouseup', onUp);
+      document.body.classList.remove('cursor-active');
+    };
+  }, []);
+  return (
+    <>
+      <div className="cursor-dot" />
+      <div className="cursor-ring" />
+    </>
+  );
+}
+
+const BUBBLES = [
+  { left: '8%', top: '12%', size: 26, delay: 0, color: 'rgba(251,146,60,0.35)' },
+  { left: '88%', top: '18%', size: 18, delay: 1.1, color: 'rgba(14,165,233,0.32)' },
+  { left: '92%', top: '62%', size: 30, delay: 0.5, color: 'rgba(251,146,60,0.28)' },
+  { left: '5%', top: '70%', size: 16, delay: 1.7, color: 'rgba(14,165,233,0.3)' },
+];
 
 function GameArt({ icon }) {
   if (icon === 'c4') {
@@ -111,6 +171,20 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState('');
   const [toast, setToast] = useState('');
   const [copied, setCopied] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - window.innerHeight;
+      setScrollY(window.scrollY);
+      setProgress(max > 0 ? window.scrollY / max : 0);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -245,9 +319,17 @@ export default function App() {
   };
 
   const WinnerFace = TEAMS[winnerKey] ? TEAMS[winnerKey].face : null;
+  const foxDrift = -scrollY * 0.06;
+  const pandaDrift = scrollY * 0.045;
 
   return (
     <main className="app">
+      <Cursor />
+      <div
+        className="scroll-progress"
+        style={{ width: `${progress * 100}%` }}
+        aria-hidden="true"
+      />
       {screen === 'landing' && (
         <section className="screen home" key="landing">
           <nav className="navbar">
@@ -295,10 +377,34 @@ export default function App() {
             </div>
             <Reveal delay={180} className="hero-mascots-wrap">
               <div className="hero-mascots" aria-hidden="true">
+                {BUBBLES.map((b, i) => (
+                  <span
+                    key={i}
+                    className="bubble"
+                    style={{
+                      left: b.left,
+                      top: b.top,
+                      width: b.size,
+                      height: b.size,
+                      background: b.color,
+                      animationDelay: `${b.delay}s`,
+                    }}
+                  />
+                ))}
                 <span className="blob blob-a" />
                 <span className="blob blob-b" />
-                <Fox className="mascot mascot-fox" />
-                <Panda className="mascot mascot-panda" />
+                <div
+                  className="mascot-wrap fox"
+                  style={{ transform: `translateY(${foxDrift}px) rotate(-6deg)` }}
+                >
+                  <Fox className="mascot mascot-fox" />
+                </div>
+                <div
+                  className="mascot-wrap panda"
+                  style={{ transform: `translateY(${pandaDrift}px) rotate(4deg)` }}
+                >
+                  <Panda className="mascot mascot-panda" />
+                </div>
               </div>
             </Reveal>
           </header>
@@ -339,7 +445,11 @@ export default function App() {
             </Reveal>
             <div className="how-grid">
               {HOW_STEPS.map((s, i) => (
-                <Reveal key={s.n} delay={i * 90}>
+                <Reveal
+                  key={s.n}
+                  delay={i * 90}
+                  dir={i === 0 ? 'dir-left' : i === 2 ? 'dir-right' : ''}
+                >
                   <div className="how-card">
                     <span className="how-num">{s.n}</span>
                     <h3>{s.title}</h3>

@@ -79,15 +79,268 @@ input {
 
 .reveal {
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.6s cubic-bezier(0.2, 0.4, 0, 1),
-    transform 0.6s cubic-bezier(0.2, 0.4, 0, 1);
+  transform: translateY(18px);
+  transition: opacity 0.7s cubic-bezier(0.2, 0.4, 0, 1),
+    transform 0.7s cubic-bezier(0.2, 0.4, 0, 1);
   will-change: opacity, transform;
+}
+
+.reveal.dir-left {
+  transform: translateX(-36px);
+}
+
+.reveal.dir-right {
+  transform: translateX(36px);
+}
+
+.reveal.dir-zoom {
+  transform: scale(0.92);
+}
+
+.reveal.dir-fade {
+  transform: none;
 }
 
 .reveal.revealed {
   opacity: 1;
   transform: none;
+}
+
+/* ---------- Custom cursor ---------- */
+
+body.cursor-active,
+body.cursor-active * {
+  cursor: none !important;
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+body.cursor-active .cursor-dot,
+body.cursor-active .cursor-ring {
+  opacity: 1;
+}
+
+.cursor-dot {
+  width: 10px;
+  height: 10px;
+  background: #f97316;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.cursor-ring {
+  width: 38px;
+  height: 38px;
+  border: 2px solid rgba(14, 165, 233, 0.65);
+  transition: width 0.18s ease, height 0.18s ease, border-color 0.18s ease;
+}
+
+.cursor-dot.big {
+  width: 16px;
+  height: 16px;
+}
+
+.cursor-ring.big {
+  width: 46px;
+  height: 46px;
+  border-color: #f97316;
+}
+
+.cursor-dot.click {
+  background: #0ea5e9;
+}
+
+/* ---------- Scroll progress ---------- */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(90deg, #f97316, #0ea5e9);
+  z-index: 80;
+  border-radius: 0 3px 3px 0;
+}
+
+/* ---------- Floating bubbles ---------- */
+
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: bubbleFloat 6s ease-in-out infinite;
+}
+
+@keyframes bubbleFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-16px) scale(1.06);
+  }
+}
+
+/* ---------- Mascot idle animation ---------- */
+
+.eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 4.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.06);
+  }
+}
+
+.mascot {
+  animation: mascotBob 3.2s ease-in-out infinite;
+}
+
+.mascot-panda {
+  animation-duration: 3.6s;
+  animation-delay: 0.45s;
+}
+
+@keyframes mascotBob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1.2deg);
+  }
+}
+
+.fox-tail {
+  transform-box: fill-box;
+  transform-origin: 18% 85%;
+  animation: wag 2.4s ease-in-out infinite;
+}
+
+@keyframes wag {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-6deg);
+  }
+}
+
+.fox-shades {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: shadesBounce 4s ease-in-out infinite;
+}
+
+@keyframes shadesBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.panda-pad {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: padTap 1.6s ease-in-out infinite;
+}
+
+@keyframes padTap {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-1.5px);
+  }
+  55% {
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Win celebration ---------- */
+
+.rm-mascot {
+  animation: celebrate 0.8s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(80, 60, 30, 0.2));
+}
+
+@keyframes celebrate {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg) scale(1);
+  }
+  40% {
+    transform: translateY(-10px) rotate(4deg) scale(1.12);
+  }
+}
+
+/* ---------- Hover micro-interactions ---------- */
+
+.game-card:hover .g-art {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.g-art {
+  transition: transform 0.25s ease;
+}
+
+.rps-btn:hover .rps-glyph {
+  transform: translateY(-3px) rotate(-4deg) scale(1.06);
+}
+
+.rps-glyph {
+  transition: transform 0.2s ease;
+}
+
+.text-link,
+.nav-links a,
+.game-card,
+.rps-btn,
+.cell,
+.ttt-cell {
+  transition: color 0.2s ease;
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .eyes,
+  .mascot,
+  .fox-tail,
+  .fox-shades,
+  .panda-pad,
+  .rm-mascot,
+  .bubble {
+    animation: none !important;
+  }
+
+  .reveal {
+    transition: opacity 0.3s ease;
+  }
 }
 
 /* ---------- Navigation ---------- */
@@ -253,24 +506,26 @@ input {
   background: rgba(14, 165, 233, 0.26);
 }
 
-.hero-mascots .mascot {
+.mascot-wrap {
   position: absolute;
+  z-index: 1;
+  will-change: transform;
+}
+
+.mascot-wrap.fox {
+  left: 20px;
+  top: 30px;
+}
+
+.mascot-wrap.panda {
+  right: 14px;
+  bottom: 4px;
+}
+
+.hero-mascots .mascot {
   width: 210px;
   height: 210px;
-  z-index: 1;
   filter: drop-shadow(0 14px 20px rgba(80, 60, 30, 0.18));
-}
-
-.hero-mascots .mascot-fox {
-  left: 20px;
-  top: 34px;
-  transform: rotate(-4deg);
-}
-
-.hero-mascots .mascot-panda {
-  right: 16px;
-  bottom: 6px;
-  transform: rotate(4deg);
 }
 
 /* ---------- Buttons ---------- */
