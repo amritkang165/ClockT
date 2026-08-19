@@ -3,7 +3,7 @@ services:
     name: connect4-online
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm run install:all && npm run build
     startCommand: npm start
     healthCheckPath: /
     autoDeploy: true
