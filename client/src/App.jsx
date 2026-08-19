@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { socket } from './socket';
 import { GAMES, gameTitle } from './games/registry';
@@ -6,14 +6,6 @@ import Connect4 from './games/Connect4';
 import TicTacToe from './games/TicTacToe';
 import Rps from './games/Rps';
 import './styles.css';
-
-// Public origin used in share links so invites never point at localhost, even
-// when the app is being viewed locally. Set VITE_PUBLIC_URL in client/.env to
-// override; when unset (e.g. production builds) it falls back to the site's
-// own origin.
-const PUBLIC_ORIGIN =
-  (import.meta.env.VITE_PUBLIC_URL || '').replace(/\/$/, '') ||
-  window.location.origin;
 
 const PREVIEW_PIECES = [
   [3, 0, 'red'],
@@ -29,6 +21,63 @@ const PREVIEW_PIECES = [
   [2, 6, 'red'],
   [3, 6, 'yellow'],
 ];
+
+const HERO_DISCS = [
+  { left: '6%', size: 22, color: 'red', dur: 9, delay: 0 },
+  { left: '15%', size: 12, color: 'yellow', dur: 12, delay: 2 },
+  { left: '27%', size: 30, color: 'yellow', dur: 10, delay: 1 },
+  { left: '40%', size: 14, color: 'red', dur: 13, delay: 3.5 },
+  { left: '55%', size: 26, color: 'red', dur: 9.5, delay: 0.8 },
+  { left: '68%', size: 16, color: 'yellow', dur: 12, delay: 2.8 },
+  { left: '80%', size: 24, color: 'yellow', dur: 10.5, delay: 1.6 },
+  { left: '90%', size: 12, color: 'red', dur: 11, delay: 0.4 },
+];
+
+const MARQUEE_ITEMS = ['Connect 4', 'Tic-Tac-Toe', 'Rock Paper Scissors', 'Real-time', 'Play with friends', 'No sign-up'];
+
+const HOW_STEPS = [
+  { n: '01', title: 'Pick a game', text: 'Choose Connect 4, Tic-Tac-Toe, or Rock Paper Scissors.' },
+  { n: '02', title: 'Share the link', text: 'Create a room and send the invite link to a friend.' },
+  { n: '03', title: 'Play live', text: 'Moves sync instantly over WebSockets. Good luck.' },
+];
+
+// Public origin used in share links so invites never point at localhost, even
+// when the app is being viewed locally. Set VITE_PUBLIC_URL in client/.env to
+// override; when unset (e.g. production builds) it falls back to the site's
+// own origin.
+const PUBLIC_ORIGIN =
+  (import.meta.env.VITE_PUBLIC_URL || '').replace(/\/$/, '') ||
+  window.location.origin;
+
+function Reveal({ as: Tag = 'div', delay = 0, className = '', children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            el.classList.add('revealed');
+            io.unobserve(el);
+          }
+        });
+      },
+      { threshold: 0.18 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <Tag
+      ref={ref}
+      className={`reveal ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </Tag>
+  );
+}
 
 function GameIcon({ icon }) {
   if (icon === 'c4') {
@@ -123,9 +172,6 @@ export default function App() {
     const onOpponentLeft = ({ name }) => {
       setToast(`${name || 'Opponent'} left the game`);
       window.setTimeout(() => setToast(''), 4000);
-      if (state && state.game === 'rps') {
-        return;
-      }
     };
 
     socket.on('roomCreated', onRoomCreated);
@@ -204,76 +250,200 @@ export default function App() {
     }
   }
 
+  const scrollToPlay = () => {
+    document.getElementById('play')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollTo = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <main className="app">
+    <main className={`app ${screen === 'landing' ? 'home' : ''}`}>
       {screen === 'landing' && (
-        <section className="screen" key="landing">
-          <div className="logo" aria-hidden="true">
-            <span className="logo-dot red" />
-            <span className="logo-dot yellow" />
-            <span className="logo-dot yellow" />
-            <span className="logo-dot red" />
-          </div>
+        <section className="screen home" key="landing">
+          <nav className="navbar">
+            <a className="brand" href="#top" onClick={(e) => { e.preventDefault(); scrollTo('top'); }}>
+              <span className="logo-mini" aria-hidden="true">
+                <span className="logo-dot red" />
+                <span className="logo-dot yellow" />
+              </span>
+              ClockT
+            </a>
+            <div className="nav-links">
+              <a href="#games" onClick={(e) => { e.preventDefault(); scrollTo('games'); }}>Games</a>
+              <a href="#how" onClick={(e) => { e.preventDefault(); scrollTo('how'); }}>How it works</a>
+              <a className="nav-play" href="#play" onClick={(e) => { e.preventDefault(); scrollTo('play'); }}>Play now</a>
+            </div>
+          </nav>
 
-          <p className="kicker">Real-time multiplayer</p>
+          <header className="hero" id="top">
+            <div className="hero-grid" aria-hidden="true" />
+            <div className="hero-discs" aria-hidden="true">
+              {HERO_DISCS.map((d, i) => (
+                <span
+                  key={i}
+                  className={`hero-disc ${d.color}`}
+                  style={{
+                    left: d.left,
+                    width: d.size,
+                    height: d.size,
+                    animationDuration: `${d.dur}s`,
+                    animationDelay: `${d.delay}s`,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="hero-inner">
+              <Reveal delay={60}>
+                <p className="kicker">Real-time multiplayer rooms</p>
+              </Reveal>
+              <Reveal delay={140}>
+                <h1 className="title">
+                  Play <span className="title-accent">ClockT</span> games<br />
+                  with friends.
+                </h1>
+              </Reveal>
+              <Reveal delay={240}>
+                <p className="subtitle">
+                  Three classics. One shared room. No sign-up — create a game,
+                  send the link, and start playing instantly.
+                </p>
+              </Reveal>
+              <Reveal delay={340}>
+                <div className="hero-cta">
+                  <button className="btn btn-primary" onClick={scrollToPlay}>
+                    Create a game
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => scrollTo('how')}>
+                    How it works
+                  </button>
+                </div>
+              </Reveal>
+            </div>
+          </header>
 
-          <h1 className="title">
-            Game<span className="title-accent">Hub</span>
-          </h1>
-
-          <p className="subtitle">
-            Pick a game, create a room, share the link, and play with a friend
-            in real time.
-          </p>
-
-          <div className="game-picker">
-            {GAMES.map(g => (
-              <button
-                key={g.id}
-                className={`game-card ${game === g.id ? 'selected' : ''}`}
-                onClick={() => setGame(g.id)}
-              >
-                <GameIcon icon={g.icon} />
-                <span className="game-card-title">{g.title}</span>
-                <span className="game-card-tagline">{g.tagline}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="cta-row">
-            <input
-              type="text"
-              className="name-input"
-              placeholder="Enter your name"
-              value={myName}
-              onChange={(e) => setMyName(e.target.value)}
-              maxLength={20}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            />
-            <button className="btn btn-primary" onClick={handleCreate}>
-              Create a {gameTitle(game)} game
-            </button>
-          </div>
-
-          <div className="board-preview" aria-hidden="true">
-            <div className="preview-grid">
-              {Array.from({ length: 4 }, (_, r) =>
-                Array.from({ length: 7 }, (_, c) => {
-                  const piece = PREVIEW_PIECES.find(
-                    ([pr, pc]) => pr === r + 2 && pc === c
-                  );
-                  return (
-                    <div
-                      key={`${r + 2}-${c}`}
-                      className={`preview-cell ${piece ? piece[2] : ''}`}
-                    />
-                  );
-                })
-              )}
+          <div className="marquee" aria-hidden="true">
+            <div className="marquee-track">
+              {[0, 1].map((k) => (
+                <div className="marquee-set" key={k}>
+                  {MARQUEE_ITEMS.map((t) => (
+                    <span className="marquee-item" key={`${k}-${t}`}>
+                      <span className="marquee-dot" />
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
 
-          <p className="meta">No sign-up · Real-time · Free</p>
+          <section className="section games-section" id="games">
+            <Reveal>
+              <p className="kicker">The games</p>
+            </Reveal>
+            <Reveal delay={80}>
+              <h2 className="section-title">Choose your battleground</h2>
+            </Reveal>
+            <div className="game-grid">
+              {GAMES.map((g, i) => (
+                <Reveal key={g.id} delay={i * 90}>
+                  <button
+                    className={`game-card big ${game === g.id ? 'selected' : ''}`}
+                    onClick={() => setGame(g.id)}
+                  >
+                    <span className="game-card-top">
+                      <span className="game-card-num">0{i + 1}</span>
+                      {game === g.id && <span className="game-card-selected">Selected</span>}
+                    </span>
+                    <GameIcon icon={g.icon} />
+                    <span className="game-card-title">{g.title}</span>
+                    <span className="game-card-tagline">{g.tagline}</span>
+                    <span className="game-card-arrow">&#8594;</span>
+                  </button>
+                </Reveal>
+              ))}
+            </div>
+          </section>
+
+          <section className="section how-section" id="how">
+            <Reveal>
+              <p className="kicker">How it works</p>
+            </Reveal>
+            <Reveal delay={80}>
+              <h2 className="section-title">Live in three steps</h2>
+            </Reveal>
+            <div className="how-grid">
+              {HOW_STEPS.map((s, i) => (
+                <Reveal key={s.n} delay={i * 100}>
+                  <div className="how-card">
+                    <span className="how-num">{s.n}</span>
+                    <h3>{s.title}</h3>
+                    <p>{s.text}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </section>
+
+          <section className="section play-section" id="play">
+            <Reveal>
+              <p className="kicker">Ready when you are</p>
+            </Reveal>
+            <Reveal delay={80}>
+              <h2 className="section-title">Start a room — it&apos;s free</h2>
+            </Reveal>
+            <Reveal delay={160}>
+              <div className="play-box">
+                <div className="play-form">
+                  <p className="play-selected">
+                    Playing: <b className="play-game">{gameTitle(game)}</b>
+                  </p>
+                  <div className="cta-row">
+                    <input
+                      type="text"
+                      className="name-input"
+                      placeholder="Enter your name"
+                      value={myName}
+                      onChange={(e) => setMyName(e.target.value)}
+                      maxLength={20}
+                      onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                    />
+                    <button className="btn btn-primary" onClick={handleCreate}>
+                      Create a {gameTitle(game)} game
+                    </button>
+                  </div>
+                </div>
+                <div className="preview-wrap">
+                  <div className="board-preview" aria-hidden="true">
+                    <div className="preview-grid">
+                      {Array.from({ length: 4 }, (_, r) =>
+                        Array.from({ length: 7 }, (_, c) => {
+                          const piece = PREVIEW_PIECES.find(
+                            ([pr, pc]) => pr === r + 2 && pc === c
+                          );
+                          return (
+                            <div
+                              key={`${r + 2}-${c}`}
+                              className={`preview-cell ${piece ? piece[2] : ''}`}
+                            />
+                          );
+                        })
+                      )}
+                    </div>
+                    <span className="preview-drop red" aria-hidden="true" />
+                    <span className="preview-drop yellow" aria-hidden="true" />
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </section>
+
+          <footer className="footer">
+            <span className="footer-brand">ClockT</span>
+            <p>Real-time multiplayer games — built with React, Socket.io &amp; Node.</p>
+            <p className="footer-meta">No sign-up · Free · Open to the world</p>
+          </footer>
         </section>
       )}
 
@@ -281,18 +451,16 @@ export default function App() {
         <section className="screen" key="joining">
           <div className="card">
             <p className="card-title">Join {gameTitle(game)} game</p>
-            <div className="name-input-row">
-              <input
-                type="text"
-                className="name-input"
-                placeholder="Enter your name"
-                value={myName}
-                onChange={(e) => setMyName(e.target.value)}
-                maxLength={20}
-                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-                autoFocus
-              />
-            </div>
+            <input
+              type="text"
+              className="name-input"
+              placeholder="Enter your name"
+              value={myName}
+              onChange={(e) => setMyName(e.target.value)}
+              maxLength={20}
+              onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+              autoFocus
+            />
             <button className="btn btn-primary" onClick={handleJoin}>
               Join game
             </button>
@@ -320,8 +488,8 @@ export default function App() {
             <p className="card-title">Share this link with your opponent</p>
             <div className="link-row">
               <span className="link-text">{shareLink}</span>
-              <button className="btn btn-secondary" onClick={copyLink}>
-                {copied ? 'Copied!' : 'Copy Link'}
+              <button className="btn btn-primary link-copy" onClick={copyLink}>
+                {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
             <div className="waiting">
