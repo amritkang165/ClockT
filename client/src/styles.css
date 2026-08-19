@@ -11,24 +11,24 @@
 }
 
 :root {
-  --bg: #12141d;
-  --surface: #1a1d29;
-  --surface-2: #232736;
-  --surface-3: #2e3348;
-  --border: #2a3042;
-  --border-strong: #3b4258;
-  --text: #eef0f8;
-  --text-dim: #a4a9c2;
-  --text-muted: #6d738d;
+  --bg: #17181e;
+  --surface: #1f2129;
+  --surface-2: #282b35;
+  --surface-3: #343743;
+  --border: #2c2f3a;
+  --border-strong: #414550;
+  --text: #f3f1f4;
+  --text-dim: #b1aeb9;
+  --text-muted: #7c7886;
 
-  --red: #ef4a63;
+  --red: #e5484d;
   --yellow: #f5b642;
 
-  --accent: #8b5cf6;
-  --accent-2: #a78bfa;
-  --accent-soft: rgba(139, 92, 246, 0.14);
+  --accent: #ff6b5e;
+  --accent-2: #ffb59b;
+  --accent-soft: rgba(255, 107, 94, 0.14);
 
-  --blue: #8b5cf6;
+  --blue: #ff6b5e;
   --green: #4ade80;
 
   --mono: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -184,7 +184,7 @@ body {
 .game-card.selected {
   border-color: var(--accent);
   background: var(--surface-2);
-  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.18), 0 12px 34px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 1px rgba(255, 107, 94, 0.18), 0 12px 34px rgba(255, 107, 94, 0.1);
 }
 
 .game-card-title {
@@ -1584,7 +1584,7 @@ html {
   font-family: var(--mono);
   font-size: 0.6rem;
   color: var(--accent-2);
-  border: 1px solid rgba(139, 92, 246, 0.45);
+  border: 1px solid rgba(255, 107, 94, 0.45);
   padding: 3px 9px;
   border-radius: 999px;
   letter-spacing: 0.08em;
@@ -1756,14 +1756,63 @@ html {
 
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: opacity, transform;
+}
+
+.reveal.r-up {
+  transform: translateY(36px) scale(0.99);
+}
+
+.reveal.r-left {
+  transform: translateX(-46px);
+}
+
+.reveal.r-right {
+  transform: translateX(46px);
+}
+
+.reveal.r-zoom {
+  transform: scale(0.9);
 }
 
 .reveal.revealed {
   opacity: 1;
   transform: none;
+}
+
+/* Masked word-by-word title reveal */
+.title-reveal {
+  display: block;
+}
+
+.tr-line {
+  display: block;
+}
+
+.tr-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.tr-inner {
+  display: inline-block;
+  transform: translateY(115%);
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.title-reveal.revealed .tr-inner {
+  transform: translateY(0);
+}
+
+.tr-inner.accent {
+  color: var(--accent-2);
 }
 
 /* --- Misc --- */
@@ -1862,5 +1911,5 @@ button:focus-visible {
 }
 
 ::selection {
-  background: rgba(139, 92, 246, 0.35);
+  background: rgba(255, 107, 94, 0.35);
 }

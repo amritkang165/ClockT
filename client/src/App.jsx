@@ -49,7 +49,7 @@ const PUBLIC_ORIGIN =
   (import.meta.env.VITE_PUBLIC_URL || '').replace(/\/$/, '') ||
   window.location.origin;
 
-function Reveal({ as: Tag = 'div', delay = 0, className = '', children }) {
+function Reveal({ as: Tag = 'div', delay = 0, className = '', dir = 'up', children }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
@@ -71,10 +71,50 @@ function Reveal({ as: Tag = 'div', delay = 0, className = '', children }) {
   return (
     <Tag
       ref={ref}
-      className={`reveal ${className}`}
+      className={`reveal r-${dir} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
+    </Tag>
+  );
+}
+
+function TitleReveal({ lines, accent = [], as: Tag = 'h1' }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            el.classList.add('revealed');
+            io.unobserve(el);
+          }
+        });
+      },
+      { threshold: 0.4 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <Tag ref={ref} className="title title-reveal">
+      {lines.map((line, li) => (
+        <span className="tr-line" key={li}>
+          {line.map((w, wi) => (
+            <span className="tr-word" key={wi}>
+              <span
+                className={`tr-inner${accent.includes(w) ? ' accent' : ''}`}
+                style={{ transitionDelay: `${(li * 3 + wi) * 65}ms` }}
+              >
+                {w}
+              </span>
+              {wi < line.length - 1 ? '\u00A0' : ''}
+            </span>
+          ))}
+        </span>
+      ))}
     </Tag>
   );
 }
@@ -258,6 +298,26 @@ export default function App() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const heroRef = useRef(null);
+
+  useEffect(() => {
+    if (screen !== 'landing') return;
+    const hero = heroRef.current;
+    if (!hero) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const grid = hero.querySelector('.hero-grid');
+    const inner = hero.querySelector('.hero-inner');
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (grid) grid.style.transform = `translateY(${y * 0.35}px)`;
+      if (inner) inner.style.transform = `translateY(${y * -0.12}px)`;
+      hero.style.opacity = 1 - Math.min(y / hero.offsetHeight, 0.35);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [screen]);
+
   return (
     <main className={`app ${screen === 'landing' ? 'home' : ''}`}>
       {screen === 'landing' && (
@@ -277,7 +337,7 @@ export default function App() {
             </div>
           </nav>
 
-          <header className="hero" id="top">
+          <header className="hero" id="top" ref={heroRef}>
             <div className="hero-grid" aria-hidden="true" />
             <div className="hero-discs" aria-hidden="true">
               {HERO_DISCS.map((d, i) => (
@@ -298,11 +358,14 @@ export default function App() {
               <Reveal delay={60}>
                 <p className="kicker">Real-time multiplayer rooms</p>
               </Reveal>
-              <Reveal delay={140}>
-                <h1 className="title">
-                  Play <span className="title-accent">ClockT</span> games<br />
-                  with friends.
-                </h1>
+              <Reveal dir="zoom" delay={120}>
+                <TitleReveal
+                  lines={[
+                    ['Play', 'ClockT', 'games'],
+                    ['with', 'friends.'],
+                  ]}
+                  accent={['ClockT']}
+                />
               </Reveal>
               <Reveal delay={240}>
                 <p className="subtitle">
@@ -347,7 +410,7 @@ export default function App() {
             </Reveal>
             <div className="game-grid">
               {GAMES.map((g, i) => (
-                <Reveal key={g.id} delay={i * 90}>
+                <Reveal key={g.id} delay={i * 90} dir={['left', 'zoom', 'right'][i]}>
                   <button
                     className={`game-card big ${game === g.id ? 'selected' : ''}`}
                     onClick={() => setGame(g.id)}
@@ -375,7 +438,7 @@ export default function App() {
             </Reveal>
             <div className="how-grid">
               {HOW_STEPS.map((s, i) => (
-                <Reveal key={s.n} delay={i * 100}>
+                <Reveal key={s.n} delay={i * 100} dir={['left', 'up', 'right'][i]}>
                   <div className="how-card">
                     <span className="how-num">{s.n}</span>
                     <h3>{s.title}</h3>
@@ -393,7 +456,7 @@ export default function App() {
             <Reveal delay={80}>
               <h2 className="section-title">Start a room — it&apos;s free</h2>
             </Reveal>
-            <Reveal delay={160}>
+            <Reveal delay={160} dir="zoom">
               <div className="play-box">
                 <div className="play-form">
                   <p className="play-selected">
