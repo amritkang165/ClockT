@@ -20,7 +20,7 @@
   --shadow-md: 0 2px 6px rgba(80, 60, 30, 0.08), 0 14px 34px rgba(80, 60, 30, 0.12);
   --radius: 22px;
   --radius-sm: 14px;
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+  --font: 'Nunito', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
     'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -363,8 +363,8 @@ body.cursor-active .cursor-ring {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 900;
   letter-spacing: -0.02em;
   color: var(--text);
 }
@@ -433,19 +433,35 @@ body.cursor-active .cursor-ring {
 }
 
 .kicker {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1.5px solid var(--hairline);
+  box-shadow: var(--shadow-sm);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+}
+
+.kicker::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .title {
-  font-size: clamp(44px, 6vw, 76px);
-  line-height: 1.02;
-  letter-spacing: -0.035em;
-  font-weight: 800;
+  font-size: clamp(44px, 6vw, 80px);
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  font-weight: 900;
   color: var(--text);
   margin-bottom: 20px;
 }
@@ -545,29 +561,37 @@ body.cursor-active .cursor-ring {
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #fb923c, var(--accent));
+  background: #fb923c;
   color: #fff;
-  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: 0 5px 0 #ea580c, 0 12px 22px rgba(249, 115, 22, 0.28);
 }
 
 .btn-primary:hover {
+  background: #f97316;
   transform: translateY(-1px);
-  background: linear-gradient(180deg, #f97316, #ea580c);
+  box-shadow: 0 6px 0 #ea580c, 0 14px 24px rgba(249, 115, 22, 0.32);
 }
 
 .btn-primary:active {
-  transform: translateY(0);
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #ea580c, 0 6px 12px rgba(249, 115, 22, 0.25);
 }
 
 .btn-blue {
-  background: linear-gradient(180deg, #38bdf8, var(--blue));
+  background: #38bdf8;
   color: #fff;
-  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: 0 5px 0 #0277b8, 0 12px 22px rgba(14, 165, 233, 0.28);
 }
 
 .btn-blue:hover {
-  background: linear-gradient(180deg, var(--blue), var(--blue-deep));
+  background: #0ea5e9;
   transform: translateY(-1px);
+  box-shadow: 0 6px 0 #0277b8, 0 14px 24px rgba(14, 165, 233, 0.32);
+}
+
+.btn-blue:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #0277b8, 0 6px 12px rgba(14, 165, 233, 0.25);
 }
 
 .text-link {
@@ -813,12 +837,18 @@ body.cursor-active .cursor-ring {
 }
 
 .how-num {
-  display: block;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  margin-bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  background: #fb923c;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 0 #ea580c;
 }
 
 .how-card h3 {
@@ -1276,7 +1306,8 @@ body.cursor-active .cursor-ring {
   aspect-ratio: 1;
   border-radius: 50%;
   background: var(--well);
-  box-shadow: inset 0 2px 3px rgba(80, 60, 30, 0.14);
+  box-shadow: inset 0 0 0 2px rgba(80, 60, 30, 0.05),
+    inset 0 2px 3px rgba(80, 60, 30, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1775,4 +1806,53 @@ body.cursor-active .cursor-ring {
   .board-preview {
     display: none;
   }
+}
+/* ---------- Polish pass ---------- */
+
+.section-title {
+  font-weight: 900;
+}
+
+.game-card-title {
+  font-weight: 900;
+}
+
+.game-card:hover {
+  transform: translateY(-5px) rotate(-0.4deg);
+}
+
+.g-art.c4 {
+  background: linear-gradient(180deg, #fff3e2, #ffe8d2);
+}
+
+.g-art.ttt {
+  background: linear-gradient(180deg, #e9f5ff, #dbeefd);
+}
+
+.g-art.rps {
+  background: linear-gradient(180deg, #f2eeff, #e9e2ff);
+}
+
+.mascot-wrap::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  bottom: -12px;
+  width: 80%;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(80, 60, 30, 0.22), transparent 68%);
+  z-index: 0;
+}
+
+.status {
+  font-weight: 800;
+}
+
+.room-tag {
+  font-weight: 800;
+}
+
+.footer-brand {
+  font-weight: 900;
 }
