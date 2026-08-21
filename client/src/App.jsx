@@ -121,6 +121,119 @@ function Cursor() {
   );
 }
 
+function MiniIcon({ icon }) {
+  if (icon === 'c4') {
+    return (
+      <span className="mini-pair" aria-hidden="true">
+        <FoxFace />
+        <PandaFace />
+      </span>
+    );
+  }
+  if (icon === 'ttt') {
+    return (
+      <span className="mini-pair" aria-hidden="true">
+        <PandaFace />
+        <FoxFace />
+      </span>
+    );
+  }
+  return (
+    <span className="mini-pair" aria-hidden="true">
+      <BearFace />
+      <SnakeFace />
+    </span>
+  );
+}
+
+function GameDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  const current = GAMES.find((g) => g.id === value) || GAMES[0];
+
+  return (
+    <div className={`dd ${open ? 'open' : ''}`} ref={ref}>
+      <button
+        type="button"
+        className="dd-toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="dd-current">
+          <MiniIcon icon={current.icon} />
+          {current.title}
+        </span>
+        <svg
+          className="dd-chevron"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <div className="dd-menu" role="listbox">
+        {GAMES.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            role="option"
+            aria-selected={g.id === value}
+            className={`dd-item ${g.id === value ? 'selected' : ''}`}
+            onClick={() => {
+              onChange(g.id);
+              setOpen(false);
+            }}
+          >
+            <MiniIcon icon={g.icon} />
+            <span className="dd-item-text">
+              <b>{g.title}</b>
+              <small>{g.tagline}</small>
+            </span>
+            {g.id === value && (
+              <svg
+                className="dd-check"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const BUBBLES = [
   { left: '8%', top: '12%', size: 26, delay: 0, color: 'rgba(251,146,60,0.35)' },
   { left: '88%', top: '18%', size: 18, delay: 1.1, color: 'rgba(14,165,233,0.32)' },
@@ -470,9 +583,7 @@ export default function App() {
             <Reveal delay={140}>
               <div className="play-box">
                 <div className="play-form">
-                  <p className="play-selected">
-                    Playing: <b className="play-game">{gameTitle(game)}</b>
-                  </p>
+                  <GameDropdown value={game} onChange={setGame} />
                   <div className="cta-row">
                     <input
                       type="text"
