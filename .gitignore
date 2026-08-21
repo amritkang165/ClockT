@@ -3,3 +3,4 @@ dist/
 .freebuff/
 *.log
 .env
+sample-native-app/
